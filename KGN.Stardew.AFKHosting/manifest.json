@@ -1,0 +1,10 @@
+﻿{
+  "Name": "AFK Hosting",
+  "Author": "Kronos Gaming LLC",
+  "Version": "1.0.0",
+  "Description": "",
+  "UniqueID": "KGN.Stardew.AFKHosting",
+  "EntryDll": "KGN.Stardew.AFKHosting.dll",
+  "MinimumApiVersion": "2.0",
+  "UpdateKeys": []
+}
