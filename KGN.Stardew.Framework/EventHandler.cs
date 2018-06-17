@@ -1,11 +1,18 @@
-﻿using KGN.Stardew.Framework.Interfaces;
+﻿using KGN.Stardew.Framework.Intefaces;
+using KGN.Stardew.Framework.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace KGN.Stardew.Framework
 {
-    public abstract class EventHandler<TEvent, TState> : IEventHandler<TEvent, TState>
+    /// <summary>
+    /// Base class for an event handler
+    /// </summary>
+    /// <typeparam name="TEvent">The event being handled</typeparam>
+    /// <typeparam name="TState">The state model class of the context, usually the state model class of the mod.</typeparam>
+    public abstract class EventHandler<TEvent, TState> : IExecutable<TState>
+        where TState : class
     {
         protected readonly IEventContext<TEvent, TState> context;
 
@@ -14,6 +21,6 @@ namespace KGN.Stardew.Framework
             this.context = context;
         }
 
-        public abstract TState Handle();
+        public abstract TState Execute();
     }
 }

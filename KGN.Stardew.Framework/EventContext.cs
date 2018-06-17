@@ -11,11 +11,10 @@ using System.Threading.Tasks;
 namespace KGN.Stardew.Framework
 {
     /// <summary>
-    /// 
+    /// The context to pass to an event handler that exposes state, holds a copy of the original event, and exposes certain mod functionality
     /// </summary>
     /// <typeparam name="TEvent">The source event</typeparam>
-    /// <typeparam name="TState">Must be an immutable type</typeparam>
-    //TODO: add some kind of constraint to make sure T is immutable
+    /// <typeparam name="TState">The state model class being exposed, usually the state model class of the mod</typeparam>
     public class EventContext<TEvent, TState> : IEventContext<TEvent,TState>
         where TState : class
     {

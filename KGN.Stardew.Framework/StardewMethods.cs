@@ -4,9 +4,15 @@ using System.Text;
 
 namespace KGN.Stardew.Framework
 {
-    public class StardewMethods
+    /// <summary>
+    /// Container for the classes which contain the stardew classes' method name constants
+    /// </summary>
+    public class StardewMethodNames
     {
-        public class GameLocationMethods
+        /// <summary>
+        /// Constants for method names in the GameLocation class
+        /// </summary>
+        public class GameLocationMethodNames
         {
             public const string startSleep = "startSleep";
         }

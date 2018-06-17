@@ -12,10 +12,16 @@ namespace KGN.Stardew.Framework
     //converted into an extension to use like the with keyword in other languages
     //since i didnt really pay attention when converting and since i just took it at its word, this needs to be reviewed
     //TODO: create a version that can change multiple properties at a time
-    //need to compare performance with just newing up objects
+    //need to compare performance with just newing up objects or other ways to simulate with (like via fody)
     //TODO: how to constrain to only immutable types
     public static class WithExtension
     {
+        /// <summary>
+        /// An extension method to simulate the "with" keyword from functional languages. An oversimplified description is that it creates a new instance of an immutable object with a specific value changed.
+        /// </summary>
+        /// <param name="expression">Expression returning the property to be mutated</param>
+        /// <param name="value">The value the property is to be set to</param>
+        /// <returns>A new instance of the object with the selected property set to the new value.</returns>
         public static TInstance With<TInstance, TValue>(this TInstance instance, Expression<Func<TInstance, TValue>> expression, TValue value)
             where TInstance : class
         {

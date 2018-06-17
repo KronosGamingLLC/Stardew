@@ -12,10 +12,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)EventContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Intefaces\IEventContext.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Intefaces\IEventHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Intefaces\IExecutable.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Intefaces\IKGNMod.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)KGNMod.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Reflection\EventHandlerTypeInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)StardewMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)With.cs" />
   </ItemGroup>
