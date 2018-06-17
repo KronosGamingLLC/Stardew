@@ -35,7 +35,7 @@ namespace KGN.Stardew.Framework
                 var context = Activator.CreateInstance(contextType, new object[] { @event, State, this });
                 var handler = Activator.CreateInstance(handlerType, new object[] { context });
 
-                var state = handlerType.GetMethods().FirstOrDefault(m => m.Name == "Handle").Invoke(handler, new object[] { }) as TState;
+                var state = handlerType.GetMethods().FirstOrDefault(m => m.Name == nameof(IEventHandler<object,object>.Handle)).Invoke(handler, new object[] { }) as TState;
 
                 if (state != null)
                     State = state;

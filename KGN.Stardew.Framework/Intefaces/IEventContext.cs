@@ -13,5 +13,6 @@ namespace KGN.Stardew.Framework.Interfaces
         TState State { get; }
         TEvent Event { get; }
         IMonitor Monitor { get; }
+        IModHelper Helper { get; }
     }
 }

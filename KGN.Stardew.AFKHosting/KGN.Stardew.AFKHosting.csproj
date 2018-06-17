@@ -45,6 +45,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AFKHostingHelper.cs" />
     <Compile Include="AFKHostingState.cs" />
     <Compile Include="Events\AFKHostingKeyPress.cs" />
     <Compile Include="Handlers\AFKHostingKeyPressed.cs" />

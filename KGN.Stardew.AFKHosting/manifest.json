@@ -5,6 +5,6 @@
   "Description": "",
   "UniqueID": "KGN.Stardew.AFKHosting",
   "EntryDll": "KGN.Stardew.AFKHosting.dll",
-  "MinimumApiVersion": "2.0",
+  "MinimumApiVersion": "2.6-beta",
   "UpdateKeys": []
 }

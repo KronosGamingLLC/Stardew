@@ -16,6 +16,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Intefaces\IKGNMod.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)KGNMod.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Reflection\EventHandlerTypeInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)StardewMethods.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)With.cs" />
   </ItemGroup>
 </Project>

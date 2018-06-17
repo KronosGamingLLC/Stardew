@@ -22,6 +22,7 @@ namespace KGN.Stardew.Framework
         private readonly IKGNMod<TState> mod;
         public TState State { get; private set; }
         public TEvent Event { get; }
+        public IModHelper Helper => mod.Helper;
         public IMonitor Monitor => mod.Monitor;
         
         public EventContext(TEvent @event, TState state, IKGNMod<TState> mod)
