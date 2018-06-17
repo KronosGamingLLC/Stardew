@@ -71,9 +71,10 @@ namespace KGN.Stardew.AFKHosting
         {
             if (Context.IsWorldReady
                 && State.AFKHostingOn
-                && Context.IsPlayerFree
+                && Context.CanPlayerMove
                 && AFKHostingHelper.RemotePlayersOnline
-                && AFKHostingHelper.PlayerInBed)
+                && AFKHostingHelper.PlayerInBed
+                && !AFKHostingHelper.PlayerIsSleeping)
             {
                 AFKHostingHelper.StartSleep(Helper);
             }

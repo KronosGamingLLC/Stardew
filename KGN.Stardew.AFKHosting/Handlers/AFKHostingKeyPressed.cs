@@ -18,6 +18,11 @@ namespace KGN.Stardew.AFKHosting.Handlers
         public override AFKHostingState Handle()
         {
             var newState = context.State.With(s => s.AFKHostingOn, !context.State.AFKHostingOn);
+
+            //cancel active sleep dialog if turning hosting mode off
+            if(!newState.AFKHostingOn)
+                AFKHostingHelper.CloseDialog();
+
             context.Monitor.Log($"AFK Hosting Mode toggled to {(newState.AFKHostingOn ? "on" : "off")}", LogLevel.Trace);
             return newState;
         }

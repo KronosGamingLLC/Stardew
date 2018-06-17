@@ -15,6 +15,10 @@ namespace KGN.Stardew.AFKHosting
 
         public static bool PlayerInBed => Game1.player.isInBed.Value;
 
+        public static bool PlayerIsSleeping => !Context.CanPlayerMove && PlayerInBed;
+
+        public static void CloseDialog() => Game1.activeClickableMenu?.exitFunction();
+
         public static void StartSleep(IModHelper helper)
         {
             var currentLocation = Game1.player.currentLocation;
