@@ -1,16 +1,8 @@
 ﻿using KGN.Stardew.AFKHosting.Events;
 using KGN.Stardew.Framework;
-using KGN.Stardew.Framework.Interfaces;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
-using StardewValley;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KGN.Stardew.AFKHosting
 {
@@ -57,7 +49,7 @@ namespace KGN.Stardew.AFKHosting
             if (Context.IsMultiplayer)
             {
                 HookupStardewEvents();
-                Monitor.Log($"AFK Hosting initialized for '{AFKHostingHelper.FarmName}'", LogLevel.Info);
+                Monitor.Log($"AFK Hosting initialized for '{StardewHelper.FarmName}'", LogLevel.Info);
             }
             else
                 Monitor.Log("AFK Hosting disabled in single player mode.", LogLevel.Info);
@@ -82,15 +74,10 @@ namespace KGN.Stardew.AFKHosting
         private void GameEvents_QuarterSecondTick(object sender, EventArgs e)
         {
             //trigger sleep when possible if afk mode is on
-            if (Context.IsWorldReady
-                && State.AFKHostingOn
-                && Context.CanPlayerMove
-                && AFKHostingHelper.RemotePlayersAreOnline
-                && AFKHostingHelper.PlayerIsInBed
-                && !AFKHostingHelper.PlayerIsSleeping)
+            if (State.AFKHostingOn && StardewHelper.ThisPlayerCanSleep && StardewHelper.RemotePlayersAreOnline)
             {
-                AFKHostingHelper.StartSleep(Helper);
-                Monitor.Log($"AFK sleep has been triggered for player '{AFKHostingHelper.PlayerName}' ({AFKHostingHelper.PlayerId}).", LogLevel.Trace);
+                StardewHelper.StartSleepForThisPlayer(Helper);
+                Monitor.Log($"AFK sleep has been triggered for player '{StardewHelper.ThisPlayerName}' ({StardewHelper.ThisPlayerId}).", LogLevel.Trace);
             }
         }
 

@@ -1,13 +1,9 @@
 ﻿using KGN.Stardew.Framework.Intefaces;
-using KGN.Stardew.Framework.Interfaces;
 using StardewModdingAPI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace KGN.Stardew.Framework
 {

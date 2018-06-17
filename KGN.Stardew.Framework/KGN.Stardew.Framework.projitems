@@ -9,6 +9,7 @@
     <Import_RootNamespace>KGN.Stardew.Framework</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)StardewHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)EventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Intefaces\IEventContext.cs" />

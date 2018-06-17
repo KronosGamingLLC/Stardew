@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace KGN.Stardew.Framework.Intefaces
+﻿namespace KGN.Stardew.Framework.Intefaces
 {
     /// <summary>
     /// Contains an Execute method

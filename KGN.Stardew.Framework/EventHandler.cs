@@ -1,8 +1,5 @@
 ﻿using KGN.Stardew.Framework.Intefaces;
 using KGN.Stardew.Framework.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace KGN.Stardew.Framework
 {

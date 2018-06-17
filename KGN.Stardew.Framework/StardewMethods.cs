@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace KGN.Stardew.Framework
+﻿namespace KGN.Stardew.Framework
 {
     /// <summary>
     /// Container for the classes which contain the stardew classes' method name constants
