@@ -69,10 +69,7 @@ namespace KGN.Stardew.AFKHosting
         /// </summary>
         public static long ThisPlayerId => GetPlayerId(Game1.player);
 
-        ///<summary>
-        ///if the local player is able to sleep
-        ///</summary>
-        public static bool ThisPlayerCanSleep => Context.IsWorldReady && Context.CanPlayerMove && IsThisPlayerInBed;
+        public static bool IsThisPlayerFree => Context.IsWorldReady && Context.CanPlayerMove;
 
         /// <summary>
         /// The current time, day, year, and season
@@ -89,6 +86,21 @@ namespace KGN.Stardew.AFKHosting
         /// Wether or not the local player is in a game location that is a festival
         /// </summary>
         public static bool IsPlayerAtFestival => Game1.isFestival();
+
+        /// <summary>
+        /// Gets the location of todays festival.
+        /// </summary>
+        /// <returns>The location of todays festival. Returns Location.None if there is no festival.</returns>
+        public static Location WhereIsFestival()
+        {
+            if (String.IsNullOrWhiteSpace(Game1.whereIsTodaysFest))
+                return Location.None;
+
+            var location = Location.None;
+            Enum.TryParse(Game1.whereIsTodaysFest, out location);
+
+            return location;
+        }
 
         /// <summary>
         /// Wether or not the currently displayed dialog is the waiting for other players dialog. Returns false if there is no dialog.
@@ -220,6 +232,10 @@ namespace KGN.Stardew.AFKHosting
         /// <param name="y"></param>
         public static void TeleportThisPlayer(Location location, int x, int y)
         {
+            //TODO: throw exception to be caught by logging higher up
+            if (location == Location.None)
+                return;
+
             ConsoleCommands.RunCommand(ConsoleCommands.BuildWarpCommand(location, x, y));
         }
 
@@ -259,6 +275,7 @@ namespace KGN.Stardew.AFKHosting
 
         public enum Location
         {
+            None,
             FarmHouse,
             Farm,
             FarmCave,

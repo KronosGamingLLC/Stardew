@@ -64,8 +64,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AFKHostingState.cs" />
-    <Compile Include="Events\AFKHostingKeyPress.cs" />
-    <Compile Include="Handlers\AFKHostingKeyPressed.cs" />
+    <Compile Include="Events\ToggleAFKStatus.cs" />
+    <Compile Include="Handlers\ToggledAFKStatus.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Config.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

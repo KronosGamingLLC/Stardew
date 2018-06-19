@@ -5,9 +5,9 @@ using StardewModdingAPI;
 
 namespace KGN.Stardew.AFKHosting.Handlers
 {
-    public class AFKHostingKeyPressed : EventHandler<AFKHostingKeyPress, AFKHostingState>
+    public class ToggledAFKStatus : EventHandler<ToggleAFKStatus, AFKHostingState>
     {
-        public AFKHostingKeyPressed(IEventContext<AFKHostingKeyPress, AFKHostingState> context) : base(context) { }
+        public ToggledAFKStatus(IEventContext<ToggleAFKStatus, AFKHostingState> context) : base(context) { }
 
         public override AFKHostingState Execute()
         {

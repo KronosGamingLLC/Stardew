@@ -1,6 +1,6 @@
 ﻿namespace KGN.Stardew.AFKHosting.Events
 {
-    public class AFKHostingKeyPress
+    public class ToggleAFKStatus
     {
 
     }
