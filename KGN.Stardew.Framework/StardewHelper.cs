@@ -5,6 +5,7 @@ using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace KGN.Stardew.AFKHosting
@@ -72,15 +73,26 @@ namespace KGN.Stardew.AFKHosting
         public static bool IsThisPlayerFree => Context.IsWorldReady && Context.CanPlayerMove;
 
         /// <summary>
-        /// The current time, day, year, and season
+        /// The current day, year, and season
         /// </summary>
-        public static SDate Now => SDate.Now();
+        public static SDate Today => SDate.Now();
+
+        /// <summary>
+        /// The current time of day in military format, ie 0-2400
+        /// </summary>
+        public static int CurrentTime => Game1.timeOfDay;
 
         /// <summary>
         /// If the current game day is a festival day
         /// </summary>
         //TODO: verify if day is 0 or 1 based for this function
-        public static bool IsFestivalDay => Utility.isFestivalDay(Now.Day, Now.Season);
+        public static bool IsFestivalDay => Utility.isFestivalDay(Today.Day, Today.Season);
+
+        /// <summary>
+        /// If the festival is ready (not being set up, if the time it is open has passed)
+        /// </summary>
+        //TODO: return false if festival is over
+        public static bool IsFestivalReady => IsFestivalDay && Game1.timeOfDay > GetFestivalStartTime();
 
         /// <summary>
         /// Wether or not the local player is in a game location that is a festival
@@ -159,8 +171,9 @@ namespace KGN.Stardew.AFKHosting
         }
 
         /// <summary>
-        /// Closes any top level, active, bloacking UI element (such as a menu or dialog) with the default exit functionality of that dialog, if there is one active
+        /// Closes any top level, active, blocking UI element (such as a menu or dialog) with the default exit functionality of that dialog, if there is one active
         /// </summary>
+        //TODO: or should Game1.exitActiveMenu() be used?
         public static void CloseDialogOrMenu() => Game1.activeClickableMenu?.exitFunction();
 
         /// <summary>
@@ -271,6 +284,26 @@ namespace KGN.Stardew.AFKHosting
             Game1.CurrentEvent.skipped = true;
             Game1.CurrentEvent.skipEvent();
             Game1.freezeControls = false;
+        }
+
+        //TODO: refactor
+        public static int GetFestivalStartTime()
+        {
+            const string festivalDataPath = "Data\\Festivals\\";
+
+            var todaysFestivalPath = $"{festivalDataPath}{Today.Season}{Today.Day}";
+
+            int startTime = 0;
+
+            try
+            {
+                var festivalData = Game1.temporaryContent.Load<Dictionary<string, string>>(todaysFestivalPath);
+                var startTimeString = festivalData["conditions"].Split('/')[1].Split(' ')[0];
+                Int32.TryParse(startTimeString, out startTime);
+            }
+            catch { }
+
+            return startTime;
         }
 
         public enum Location

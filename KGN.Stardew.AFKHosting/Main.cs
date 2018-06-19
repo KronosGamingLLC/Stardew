@@ -17,6 +17,14 @@ namespace KGN.Stardew.AFKHosting
             State = new AFKHostingState(Config.StartInAFKHostingMode);
             LoadEvents();
 
+            //todo: add framework for loading custom commands
+            //todo: how to remove commands
+            Helper.ConsoleCommands.Add("afk", "toggles player's afk status for AFKHosting mod", (cmd, args) =>
+            {
+                if(Context.IsWorldReady)
+                    BroadcastEvent(new ToggleAFKStatus());
+            });
+
             SaveEvents.AfterLoad += SaveEvents_AfterLoad;
             SaveEvents.AfterCreate += SaveEvents_AfterCreate;
 
@@ -51,9 +59,6 @@ namespace KGN.Stardew.AFKHosting
             {
                 HookupStardewEvents();
 
-                //todo: add framework for loading custom commands
-                Helper.ConsoleCommands.Add("afk", "toggles player's afk status for AFKHosting mod", (cmd, args) => BroadcastEvent(new ToggleAFKStatus()));
-
                 Monitor.Log($"AFK Hosting initialized for '{StardewHelper.FarmName}'", LogLevel.Info);
             }
             else
@@ -73,8 +78,7 @@ namespace KGN.Stardew.AFKHosting
             InputEvents.ButtonReleased -= InputEvents_ButtonReleased;
             GameEvents.QuarterSecondTick -= GameEvents_QuarterSecondTick;
         }
-
-        //TODO: need to cancel waiting for player dialog if other players have quit
+   
         //fast enough that it seems near instant but more performant since it doesn't run as often
         private void GameEvents_QuarterSecondTick(object sender, EventArgs e)
         {
@@ -94,6 +98,7 @@ namespace KGN.Stardew.AFKHosting
         private bool wentToFestival = false;
         public void AFKHostingRoutine()
         {
+            //TODO: need to cancel waiting for player dialog if other players have quit
             //should be able to ignore events and cutscenes since that should be handled by Context.PlayerCanMove
             //TODO: cancel cutscenens when they occur
             //TODO: move player outside house in morning to trigger any cutscenes that might occur
@@ -103,7 +108,7 @@ namespace KGN.Stardew.AFKHosting
                 return;
 
             //TODO: test if this tries to teleport player more than once
-            if(IsFestivalDay && !IsPlayerAtFestival)
+            if(IsFestivalDay && IsFestivalReady && !IsPlayerAtFestival)
             {
                 //make this a helper function
                 var festivalLocation = WhereIsFestival();
@@ -121,8 +126,11 @@ namespace KGN.Stardew.AFKHosting
                 wentToFestival = true;
             }
 
+            //this should run once to trigger the festival leave waiting screen which should teleport to farm
+            //(or just start here if there is no festival) then it will run again to move player to bed if they are not in it
+            //and one more time to trigger wait for sleep
             //TODO: test how this is affected by time change when festival ends
-            if(!IsFestivalDay || (IsFestivalDay && wentToFestival))
+            if (!IsFestivalDay || (IsFestivalDay && wentToFestival))
             {
                 //test if this waits until the teleport is finished
                 if (!IsThisPlayerInBed)

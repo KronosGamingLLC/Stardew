@@ -68,16 +68,14 @@ namespace KGN.Stardew.Framework
 
             var handlers = Assembly.GetAssembly(this.GetType()).GetTypes()
                 .Where(t =>
-                    t.GetInterfaces().Any(i =>
-                        i.IsGenericType
-                        && i.GetGenericTypeDefinition() == typeof(EventHandler<,>)
-                        && i.GetGenericArguments()[1] == typeof(TState) //TODO: replace hardcoded generic parameter index
-                ));
-
+                    t.BaseType != null
+                    && t.BaseType.IsGenericType 
+                    && t.BaseType.GetGenericTypeDefinition() == typeof(EventHandler<,>) 
+                    && t.BaseType.GetGenericArguments()[1] == typeof(TState)); //TODO: replace hardcoded generic parameter index
+            
             foreach (var handler in handlers)
             {
-                var baseType = handler.GetInterfaces().FirstOrDefault(i => i.GetGenericTypeDefinition() == typeof(EventHandler<,>));
-                var eventType = baseType.GetGenericArguments()[0]; //TODO: replace hardcoded generic parameter index
+                var eventType = handler.BaseType.GetGenericArguments()[0]; //TODO: replace hardcoded generic parameter index
                 eventHandlers.Add(eventType, handler);
             }
         }
