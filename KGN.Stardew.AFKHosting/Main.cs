@@ -2,6 +2,8 @@
 using KGN.Stardew.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
+using StardewValley;
+using StardewValley.Menus;
 using System;
 using static KGN.Stardew.AFKHosting.StardewHelper;
 
@@ -96,6 +98,7 @@ namespace KGN.Stardew.AFKHosting
         //todo: factor out this logic from main and add wentToFestival to mod state
         //TODO: add trace log
         private bool wentToFestival = false;
+        private bool testRunOnce = true;
         public void AFKHostingRoutine()
         {
             //TODO: need to cancel waiting for player dialog if other players have quit
@@ -108,7 +111,7 @@ namespace KGN.Stardew.AFKHosting
                 return;
 
             //TODO: test if this tries to teleport player more than once
-            if(IsFestivalDay && IsFestivalReady && !IsPlayerAtFestival)
+            if(IsFestivalDay && IsFestivalReady && !IsThisPlayerAtFestival && !wentToFestival)
             {
                 //make this a helper function
                 var festivalLocation = WhereIsFestival();
@@ -121,17 +124,20 @@ namespace KGN.Stardew.AFKHosting
             //should not have to handle where player is waiting for other players to enter festival
             //as that should be taken care of by StardewHelper.IsThisPlayerFree
 
-            if(IsFestivalDay && IsPlayerAtFestival && !wentToFestival)
+            if(IsFestivalDay && IsThisPlayerAtFestival && !wentToFestival)
             {
                 wentToFestival = true;
+                Game1.player.team.SetLocalReady("festivalEnd", true);
+                Game1.activeClickableMenu = (IClickableMenu)new ReadyCheckDialog("festivalEnd", true, new ConfirmationDialog.behavior(Game1.currentLocation.currentEvent.forceEndFestival), (ConfirmationDialog.behavior)null);
             }
 
             //this should run once to trigger the festival leave waiting screen which should teleport to farm
             //(or just start here if there is no festival) then it will run again to move player to bed if they are not in it
             //and one more time to trigger wait for sleep
             //TODO: test how this is affected by time change when festival ends
-            if (!IsFestivalDay || (IsFestivalDay && wentToFestival))
+            if (!IsFestivalDay || (IsFestivalDay && !IsThisPlayerAtFestival && wentToFestival))
             {
+                //TODO: this doesnt work when at a festival, tries to tele repeatedly but nothing happens
                 //test if this waits until the teleport is finished
                 if (!IsThisPlayerInBed)
                 {
@@ -143,7 +149,8 @@ namespace KGN.Stardew.AFKHosting
                 }
             }
 
-            //reset festival status
+            //reset festival status on next day
+            //TODO: will this work for night market?
             if (!IsFestivalDay && wentToFestival)
                 wentToFestival = false;
         }

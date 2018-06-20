@@ -70,7 +70,7 @@ namespace KGN.Stardew.AFKHosting
         /// </summary>
         public static long ThisPlayerId => GetPlayerId(Game1.player);
 
-        public static bool IsThisPlayerFree => Context.IsWorldReady && Context.CanPlayerMove;
+        public static bool IsThisPlayerFree => Context.IsWorldReady && (Context.CanPlayerMove || IsThisPlayerAtFestival); //TODO: the or @festival is a temporary workaround as Context.IsPlayerFree is false while at a festival, bug report already submitted
 
         /// <summary>
         /// The current day, year, and season
@@ -92,12 +92,12 @@ namespace KGN.Stardew.AFKHosting
         /// If the festival is ready (not being set up, if the time it is open has passed)
         /// </summary>
         //TODO: return false if festival is over
-        public static bool IsFestivalReady => IsFestivalDay && Game1.timeOfDay > GetFestivalStartTime();
+        public static bool IsFestivalReady => IsFestivalDay && Game1.timeOfDay >= GetFestivalStartTime();
 
         /// <summary>
         /// Wether or not the local player is in a game location that is a festival
         /// </summary>
-        public static bool IsPlayerAtFestival => Game1.isFestival();
+        public static bool IsThisPlayerAtFestival => Game1.isFestival();
 
         /// <summary>
         /// Gets the location of todays festival.
