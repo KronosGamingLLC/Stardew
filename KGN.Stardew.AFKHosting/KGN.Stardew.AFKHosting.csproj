@@ -78,7 +78,12 @@
   <ItemGroup>
     <Analyzer Include="..\packages\Pathoschild.Stardew.ModBuildConfig.2.1.0-beta-20180428\analyzers\dotnet\cs\StardewModdingAPI.ModBuildConfig.Analyzer.dll" />
   </ItemGroup>
-  <Import Project="..\KGN.Stardew.Framework\KGN.Stardew.Framework.projitems" Label="Shared" />
+  <ItemGroup>
+    <ProjectReference Include="..\KGN.Stardew.Framework\KGN.Stardew.Framework.csproj">
+      <Project>{db2ef66c-88a8-4837-b21f-0088692aaaaa}</Project>
+      <Name>KGN.Stardew.Framework</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="..\packages\Pathoschild.Stardew.ModBuildConfig.2.1.0-beta-20180428\build\Pathoschild.Stardew.ModBuildConfig.targets" Condition="Exists('..\packages\Pathoschild.Stardew.ModBuildConfig.2.1.0-beta-20180428\build\Pathoschild.Stardew.ModBuildConfig.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

@@ -17,11 +17,11 @@ namespace KGN.Stardew.AFKHosting.Handlers
             if (newState.AFKHostingOn) //cancel all dialogs to prepare for auto-host routines
             {
                 //TODO:
-                StardewHelper.EmergencyCloseDialogs();
+                StardewAPI.EmergencyCloseDialogs();
             }
-            else if(StardewHelper.CurrentDialogIsWaitForPlayers) //cancel wait for players dialog if turning hosting mode off
+            else if(StardewAPI.CurrentDialogIsWaitForPlayers) //cancel wait for players dialog if turning hosting mode off
             {
-                StardewHelper.CloseDialogOrMenu();
+                StardewAPI.CloseDialogOrMenu();
             }
 
             context.Monitor.Log($"AFK Hosting Mode toggled to {(newState.AFKHostingOn ? "on" : "off")}", LogLevel.Trace);

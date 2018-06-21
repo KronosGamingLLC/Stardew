@@ -1,14 +1,17 @@
-﻿using KGN.Stardew.Framework;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace KGN.Stardew.AFKHosting
+namespace KGN.Stardew.Framework
 {
     //notes, the following will need a lot of reflection/injection/modification, possibly using Harmony, to tie into
     //event is finished after Game1.EventFinished is called
@@ -20,14 +23,62 @@ namespace KGN.Stardew.AFKHosting
     //once gameTimeInterval reaches 7000 (hardcoded), it is reset to 0 if Game1.panMode is true, otherwise the clock moves forward ten minutes
     //Additionaly, locations may have add an amount(which can be negative) to the 7000 milliseconds required, it is accessed by GameLocation.getExtraMillisecondsPerInGameMinuteForThisLocation() which is an overideable method
 
-
-
-    /// <summary>
-    /// Helper methods and properties for interacting the the StardewGame
-    /// </summary>
-    // TODO: look into how SMAPI Context player specific values can me made not player specific so reusable methods can be created
-    public class StardewHelper
+    public class StardewPropertyInfo
     {
+        public PropertyInfo CurrentPropertyInfo { get; set; }
+        public FieldInfo PreviousFieldInfo { get; set; }
+        public FieldInfo EventInfo { get; set; }
+    }
+
+    //pragma tags are to ignore the 'never used' warning for events since they are called via reflection
+    public class StardewAPI
+    {
+        private const string eventSuffix = "Changed";
+        private const string previousValuePrefix = "previous";
+        private static readonly Type genericStardewEventArgsType = typeof(StardewPropertyChangedEventArgs<>);
+
+        private static readonly IReadOnlyList<StardewPropertyInfo> propertiesWithChangedEvent;
+
+        static StardewAPI()
+        {
+            //this is cause im lazy and don't feel like manually adding the code to check all the properties
+            //but this is not the best because it implies a standard naming convention which can't be enforced
+            var thisType = typeof(StardewAPI);
+            var publicProperties = thisType.GetProperties(BindingFlags.Public | BindingFlags.Static);
+            var privateFields = thisType.GetFields(BindingFlags.NonPublic | BindingFlags.Static);
+            var currentProperties = publicProperties.Where(c => 
+                privateFields.Any(e => e.Name == $"{c.Name}{eventSuffix}")
+                && privateFields.Any(p => p.Name == $"{previousValuePrefix}{c.Name}")
+            );
+            propertiesWithChangedEvent = currentProperties.Select(c => new StardewPropertyInfo {
+                CurrentPropertyInfo = c,
+                PreviousFieldInfo = privateFields.FirstOrDefault(p => p.Name == $"{previousValuePrefix}{c.Name}"),
+                EventInfo = privateFields.FirstOrDefault(e => e.Name == $"{c.Name}{eventSuffix}")
+            }).ToList();
+        }
+
+        public static void UpdateAPI()
+        {
+            //TODO: can this be parrallel?
+            foreach (var property in propertiesWithChangedEvent)
+            {
+                var currentValue = property.CurrentPropertyInfo.GetMethod.Invoke(null, null);
+                var previousValue = property.PreviousFieldInfo.GetValue(null);
+
+                if (currentValue.Equals(previousValue))
+                    continue;
+
+                var @event = property.EventInfo.GetValue(null) as MulticastDelegate;
+
+                if (@event == null) return;
+
+                var argsType = genericStardewEventArgsType.MakeGenericType(property.CurrentPropertyInfo.PropertyType);
+                var eventArgs = Activator.CreateInstance(argsType, previousValue, currentValue);
+
+                @event?.DynamicInvoke(null, eventArgs);
+            }
+        }
+
         /// <summary>
         /// Indicates if a game has been loaded and the player is the host.
         /// </summary>
@@ -37,11 +88,19 @@ namespace KGN.Stardew.AFKHosting
         /// Indicates if the game is paused
         /// </summary>
         public static bool IsPaused => (!Context.IsMultiplayer && Game1.paused) || Game1.HostPaused;
+        private static bool previousIsPaused = IsPaused;
+#pragma warning disable 0169
+        public static event EventHandler<StardewPropertyChangedEventArgs<bool>> IsPausedChanged;
+#pragma warning restore 0169
 
         /// <summary>
         /// Indicates if any players other than the current player are online
         /// </summary>
-        public static bool RemotePlayersAreOnline => Game1.getOnlineFarmers().Count() > 1;
+        public static bool AreRemotePlayersOnline => (Game1.otherFarmers?.Count ?? 0) > 0;
+        private static bool previousAreRemotePlayersOnline = AreRemotePlayersOnline;
+#pragma warning disable 0169
+        public static event EventHandler<StardewPropertyChangedEventArgs<bool>> AreRemotePlayersOnlineChanged;
+#pragma warning restore 0169
 
         /// <summary>
         /// If the local player is touching the bed
@@ -165,7 +224,7 @@ namespace KGN.Stardew.AFKHosting
         public static bool IsPlayerInBed(Farmer player)
         {
             if (player == null) return false;
-                //throw new ArgumentNullException(nameof(player));
+            //throw new ArgumentNullException(nameof(player));
 
             return player.isInBed.Value;
         }
@@ -396,7 +455,7 @@ namespace KGN.Stardew.AFKHosting
             public static string BuildWarpCommand(Location location, int x, int y) => $"{warp} {location} {x} {y}";
 
             public const string minigame = "minigame";
-            
+
             public enum Minigame
             {
                 cowbow,
@@ -414,28 +473,28 @@ namespace KGN.Stardew.AFKHosting
 
             public static void RunCommand(string command) => Game1.game1.parseDebugInput(command);
 
-           /*
-            * c - stops players current action (not events) and sets player to moveable
-            * die - kills player
-            * ee - ends event (endEvent does the same thing just more?)
-            * endEvent - ends event
-            * eventOver - calls Game1.eventFinished()
-            * eventseen [id] - marks event as seen by the local player
-            * fenceDecay - trigger fence decay
-            * minigame [gameString]- starts minigame (cowboy,blastoff,minecart,grandpa)
-            * netclear - clear multiplayer net log
-            * netdump - dump multiplayer net log
-            * nethost - start multiplayer server
-            * netjoin - sets menu to FarmhandMenu?
-            * netlog - toggles net log and debug output for net log on/off
-            * ns - toggles saving on/off
-            * r - resets location i think?
-            * time [24 hour time] - sets time of day
-            * warp [locationName] [x] [y] - teleports player to coords at location
-            * wh - teleports player to home location, possibly bed?
-            * where - prints debug output of current location of character
-            * year [int] - sets the year
-            */
+            /*
+             * c - stops players current action (not events) and sets player to moveable
+             * die - kills player
+             * ee - ends event (endEvent does the same thing just more?)
+             * endEvent - ends event
+             * eventOver - calls Game1.eventFinished()
+             * eventseen [id] - marks event as seen by the local player
+             * fenceDecay - trigger fence decay
+             * minigame [gameString]- starts minigame (cowboy,blastoff,minecart,grandpa)
+             * netclear - clear multiplayer net log
+             * netdump - dump multiplayer net log
+             * nethost - start multiplayer server
+             * netjoin - sets menu to FarmhandMenu?
+             * netlog - toggles net log and debug output for net log on/off
+             * ns - toggles saving on/off
+             * r - resets location i think?
+             * time [24 hour time] - sets time of day
+             * warp [locationName] [x] [y] - teleports player to coords at location
+             * wh - teleports player to home location, possibly bed?
+             * where - prints debug output of current location of character
+             * year [int] - sets the year
+             */
         }
     }
 }
