@@ -1,8 +1,10 @@
-﻿using Microsoft.Xna.Framework;
+﻿using KGN.Stardew.Framework.API;
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
+using StardewValley.TerrainFeatures;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,6 +12,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using xTile.ObjectModel;
+using xTile.Tiles;
 
 namespace KGN.Stardew.Framework
 {
@@ -30,23 +34,29 @@ namespace KGN.Stardew.Framework
         public FieldInfo EventInfo { get; set; }
     }
 
+    //TODO: make extension method versions of some of these
     //pragma tags are to ignore the 'never used' warning for events since they are called via reflection
     public class StardewAPI
     {
+        private const string KGNStardewAPIDomainId = "com.kgn.stardew.framework";
         private const string eventSuffix = "Changed";
         private const string previousValuePrefix = "previous";
         private static readonly Type genericStardewEventArgsType = typeof(StardewPropertyChangedEventArgs<>);
-
         private static readonly IReadOnlyList<StardewPropertyInfo> propertiesWithChangedEvent;
+        //private static readonly HarmonyInstance harmony = HarmonyInstance.Create(KGNStardewAPIDomainId);
+
+        public const int TileSize = Game1.tileSize;
 
         static StardewAPI()
         {
+            //harmony.PatchAll(Assembly.GetAssembly(typeof(StardewAPI)));
+
             //this is cause im lazy and don't feel like manually adding the code to check all the properties
             //but this is not the best because it implies a standard naming convention which can't be enforced
             var thisType = typeof(StardewAPI);
             var publicProperties = thisType.GetProperties(BindingFlags.Public | BindingFlags.Static);
             var privateFields = thisType.GetFields(BindingFlags.NonPublic | BindingFlags.Static);
-            var currentProperties = publicProperties.Where(c => 
+            var currentProperties = publicProperties.Where(c =>
                 privateFields.Any(e => e.Name == $"{c.Name}{eventSuffix}")
                 && privateFields.Any(p => p.Name == $"{previousValuePrefix}{c.Name}")
             );
@@ -57,7 +67,7 @@ namespace KGN.Stardew.Framework
             }).ToList();
         }
 
-        public static void UpdateAPI()
+        public static void UpdateTick()
         {
             //TODO: can this be parrallel?
             foreach (var property in propertiesWithChangedEvent)
@@ -70,15 +80,19 @@ namespace KGN.Stardew.Framework
 
                 var @event = property.EventInfo.GetValue(null) as MulticastDelegate;
 
-                if (@event == null) return;
+                if (@event != null)
+                {
+                    var argsType = genericStardewEventArgsType.MakeGenericType(property.CurrentPropertyInfo.PropertyType);
+                    var eventArgs = Activator.CreateInstance(argsType, previousValue, currentValue);
 
-                var argsType = genericStardewEventArgsType.MakeGenericType(property.CurrentPropertyInfo.PropertyType);
-                var eventArgs = Activator.CreateInstance(argsType, previousValue, currentValue);
+                    @event?.DynamicInvoke(null, eventArgs);
+                }
 
-                @event?.DynamicInvoke(null, eventArgs);
+                property.PreviousFieldInfo.SetValue(null, currentValue);
             }
         }
 
+        #region GameStateProperties
         /// <summary>
         /// Indicates if a game has been loaded and the player is the host.
         /// </summary>
@@ -130,6 +144,12 @@ namespace KGN.Stardew.Framework
         public static long ThisPlayerId => GetPlayerId(Game1.player);
 
         public static bool IsThisPlayerFree => Context.IsWorldReady && (Context.CanPlayerMove || IsThisPlayerAtFestival); //TODO: the or @festival is a temporary workaround as Context.IsPlayerFree is false while at a festival, bug report already submitted
+
+        public static xTile.Dimensions.Rectangle Viewport => Game1.viewport;
+        private static xTile.Dimensions.Rectangle previousViewport = Viewport;
+#pragma warning disable 0169
+        public static event EventHandler<StardewPropertyChangedEventArgs<xTile.Dimensions.Rectangle>> ViewportChanged;
+#pragma warning restore 0169
 
         /// <summary>
         /// The current day, year, and season
@@ -187,7 +207,9 @@ namespace KGN.Stardew.Framework
         /// If there is an event at the local player's location. Always true if IsPlayerAtFestival is true.
         /// </summary>
         public static bool IsInEventLocation => Game1.currentLocation?.currentEvent != null;
+        #endregion
 
+        #region GameHelperMethods
         /// <summary>
         /// Gets a player's name
         /// </summary>
@@ -230,10 +252,13 @@ namespace KGN.Stardew.Framework
         }
 
         /// <summary>
-        /// Closes any top level, active, blocking UI element (such as a menu or dialog) with the default exit functionality of that dialog, if there is one active
+        /// Closes any top level, active, blocking UI element (such as a menu or dialog).
         /// </summary>
         //TODO: or should Game1.exitActiveMenu() be used?
-        public static void CloseDialogOrMenu() => Game1.activeClickableMenu?.exitFunction();
+        public static void CloseDialogOrMenu()
+        {
+            Game1.activeClickableMenu?.exitThisMenu(false);
+        }
 
         /// <summary>
         /// Closes all dialogs with the emergencyShutDown method. Usually used to prepare player for an immediate, forced event.
@@ -311,6 +336,15 @@ namespace KGN.Stardew.Framework
             ConsoleCommands.RunCommand(ConsoleCommands.BuildWarpCommand(location, x, y));
         }
 
+        public static void TeleportThisPlayer(string location, int x, int y)
+        {
+            //TODO: throw exception to be caught by logging higher up
+            if (String.IsNullOrWhiteSpace(location))
+                return;
+
+            ConsoleCommands.RunCommand(ConsoleCommands.BuildWarpCommand(location, x, y));
+        }
+
         /// <summary>
         /// Pauses the game. Only works for host.
         /// </summary>
@@ -365,136 +399,104 @@ namespace KGN.Stardew.Framework
             return startTime;
         }
 
-        public enum Location
-        {
-            None,
-            FarmHouse,
-            Farm,
-            FarmCave,
-            Town,
-            JoshHouse,
-            HaleyHouse,
-            SamHouse,
-            Blacksmith,
-            ManorHouse,
-            SeedShop,
-            Saloon,
-            Trailer,
-            Hospital,
-            HarveyRoom,
-            Beach,
-            ElliotHouse,
-            Mountain,
-            ScienceHouse,
-            SebastionRoom,
-            Tent,
-            Forest,
-            WizardHouse,
-            AnimalShop,
-            LeahHouse,
-            BusStop,
-            Mine,
-            Sewer,
-            BugLand,
-            Desert,
-            Club,
-            SandyHouse,
-            ArchaeologyHouse,
-            WizardHouseBasement,
-            AdventureGuild,
-            Woods,
-            Railroad,
-            WitchSwamp,
-            WitchHut,
-            WitchWarpCave,
-            Summit,
-            FishShop,
-            BathHouse_Entry,
-            BathHouse_MensLocker,
-            BathHouse_WomensLocker,
-            BathHouse_Pool,
-            CommunityCenter,
-            JojaMart,
-            Greenhouse,
-            SkullCave,
-            Backwoods,
-            Tunnel,
-            Trailer_Big,
-            Celler,
-            BeachNightMarket,
-            MermaidHouse,
-            Submarine,
-
-        }
-
         /// <summary>
         /// Gets a GameLocation object with a Location enum
         /// </summary>
         /// <param name="location">The location to retrieve</param>
         /// <returns>A GameLocation object of the location</returns>
-        public static GameLocation GetLocation(Location location) => Game1.getLocationFromName(location.ToString());
+        public static GameLocation GetLocation(Location location) => GetLocation(location.ToString());
 
-        //TODO: Make functions in the helper (like teleport) to run these. I think I can make this a fluent api
-        public class ConsoleCommands
+        public static GameLocation GetLocation(string location) => Game1.getLocationFromName(location);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        //TODO: make vector extentions for moving one tile in a direction
+        public static (Vector2 tile, int facingDirection)? GetNearestPassableUnoccupiedTile(GameLocation location, Vector2 centerTile)
         {
-            public const string canmove = "canmove";
-            public const string die = "die";
-            public const string ee = "ee";
-            public const string eventOver = "eventOver";
-            public const string eventseen = "eventseen";
-            public const string fenceDecay = "fenceDecay";
-            public const string netclear = "netclear";
-            public const string netdump = "netdump";
-            public const string netlog = "netlog";
-            public const string noSave = "noSave";
-            public const string r = "r";
-            public const string warpHome = "warpHome";
-            public const string where = "where";
+            if (IsTilePassableAndUnoccupied(location, centerTile))
+                return (centerTile, Game1.down);
 
-            public const string warp = "warp";
-            public static string BuildWarpCommand(Location location, int x, int y) => $"{warp} {location} {x} {y}";
+            //below
+            if (IsTilePassableAndUnoccupied(location, (centerTile + new Vector2(0, 1))))
+                return (centerTile + new Vector2(0, 1), Game1.up);
 
-            public const string minigame = "minigame";
+            //left
+            if (IsTilePassableAndUnoccupied(location, (centerTile - new Vector2(1, 0))))
+                return (centerTile - new Vector2(1, 0), Game1.right);
 
-            public enum Minigame
-            {
-                cowbow,
-                blastoff,
-                minecart,
-                grandpa,
-            }
-            public static string BuildMinigameCommand(Minigame minigame) => $"{ConsoleCommands.minigame} {minigame}";
+            //right
+            if (IsTilePassableAndUnoccupied(location, (centerTile + new Vector2(1, 0))))
+                return (centerTile + new Vector2(1, 0), Game1.left);
 
-            public const string time = "time";
-            public static string BuildTimeCommand(int militaryTime) => $"{time} {militaryTime}";
+            //above
+            if (IsTilePassableAndUnoccupied(location, (centerTile - new Vector2(0, 1))))
+                return (centerTile - new Vector2(0, 1), Game1.down);
 
-            public const string year = "year";
-            public static string BuildYearCommand(int yearNumber) => $"{year} {yearNumber}";
-
-            public static void RunCommand(string command) => Game1.game1.parseDebugInput(command);
-
-            /*
-             * c - stops players current action (not events) and sets player to moveable
-             * die - kills player
-             * ee - ends event (endEvent does the same thing just more?)
-             * endEvent - ends event
-             * eventOver - calls Game1.eventFinished()
-             * eventseen [id] - marks event as seen by the local player
-             * fenceDecay - trigger fence decay
-             * minigame [gameString]- starts minigame (cowboy,blastoff,minecart,grandpa)
-             * netclear - clear multiplayer net log
-             * netdump - dump multiplayer net log
-             * nethost - start multiplayer server
-             * netjoin - sets menu to FarmhandMenu?
-             * netlog - toggles net log and debug output for net log on/off
-             * ns - toggles saving on/off
-             * r - resets location i think?
-             * time [24 hour time] - sets time of day
-             * warp [locationName] [x] [y] - teleports player to coords at location
-             * wh - teleports player to home location, possibly bed?
-             * where - prints debug output of current location of character
-             * year [int] - sets the year
-             */
+            return null;
         }
+
+        //coppied from GameLocation.isTileOccupied
+        public static bool IsTileOccupied(GameLocation location, Vector2 tile)
+        {
+            StardewValley.Object @object;
+            location.objects.TryGetValue(tile, out @object);
+            Rectangle rectangle = new Rectangle((int)tile.X * 64 + 1, (int)tile.Y * 64 + 1, 62, 62);
+            Rectangle boundingBox;
+            for (int index = 0; index < location.characters.Count; ++index)
+            {
+                if (location.characters[index] != null)
+                {
+                    boundingBox = location.characters[index].GetBoundingBox();
+                    if (boundingBox.Intersects(rectangle))
+                        return true;
+                }
+            }
+
+            //added check for event actors
+            if(location.currentEvent?.actors != null)
+            {
+                for(var index = 0; index < location.currentEvent.actors.Count; ++index)
+                {
+                    if(location.currentEvent.actors[index] != null)
+                    {
+                        boundingBox = location.currentEvent.actors[index].GetBoundingBox();
+                        if (boundingBox.Intersects(rectangle))
+                            return true;
+                    }
+                }
+            }
+
+            if (location.terrainFeatures.ContainsKey(tile) && rectangle.Intersects(location.terrainFeatures[tile].getBoundingBox(tile)))
+                return true;
+            if (location.largeTerrainFeatures != null)
+            {
+                foreach (LargeTerrainFeature largeTerrainFeature in location.largeTerrainFeatures)
+                {
+                    boundingBox = largeTerrainFeature.getBoundingBox();
+                    if (boundingBox.Intersects(rectangle))
+                        return true;
+                }
+            }
+
+            return @object != null;
+        }
+
+        public static bool IsTilePassableAndUnoccupied(GameLocation location, Vector2 tile)
+        {
+            return location.isTilePassable(new xTile.Dimensions.Location(Convert.ToInt32(tile.X), Convert.ToInt32(tile.Y)), Viewport)
+                && !IsTileOccupied(location, tile);
+        }
+
+        //TODO: make NPC enum
+        public static NPC GetNPC(string name, bool atFestival)
+        {
+            if(atFestival)
+                return Game1.currentLocation?.currentEvent?.getActorByName(name);
+
+            return Game1.getCharacterFromName(name);
+        }
+        #endregion
     }
 }

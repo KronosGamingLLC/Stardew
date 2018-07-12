@@ -30,10 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="0Harmony">
-      <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Stardew Valley\0Harmony.dll</HintPath>
-      <EmbedInteropTypes>False</EmbedInteropTypes>
-    </Reference>
     <Reference Include="Microsoft.Xna.Framework, Version=4.0.0.0, Culture=neutral, PublicKeyToken=842cf8be1de50553, processorArchitecture=x86">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\Windows\Microsoft.NET\assembly\GAC_32\Microsoft.Xna.Framework\v4.0_4.0.0.0__842cf8be1de50553\Microsoft.Xna.Framework.dll</HintPath>
@@ -72,6 +68,9 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.ValueTuple, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.5.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -84,6 +83,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\CharacterNames.cs" />
+    <Compile Include="API\ConsoleCommands.cs" />
+    <Compile Include="API\Locations.cs" />
+    <Compile Include="CoordinateExtensions.cs" />
+    <Compile Include="Utilities\ActionRateLimiter.cs" />
+    <Compile Include="Utilities\BaseRateLimiter.cs" />
     <Compile Include="EventContext.cs" />
     <Compile Include="EventHandler.cs" />
     <Compile Include="Interfaces\IEventContext.cs" />
@@ -91,10 +96,17 @@
     <Compile Include="Interfaces\IKGNMod.cs" />
     <Compile Include="KGNMod.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="StardewAPI\Stardew.cs" />
-    <Compile Include="StardewAPI\StardewMethods.cs" />
-    <Compile Include="StardewAPI\StardewPropertyChanged.cs" />
+    <Compile Include="API\StardewAPI.cs" />
+    <Compile Include="API\StardewMethods.cs" />
+    <Compile Include="API\StardewPropertyChanged.cs" />
+    <Compile Include="Utilities\Debouncer.cs" />
+    <Compile Include="Utilities\FunctionRateLimiter.cs" />
+    <Compile Include="Utilities\RateLimiting.cs" />
     <Compile Include="With.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

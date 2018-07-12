@@ -1,5 +1,8 @@
-﻿using KGN.Stardew.AFKHosting.Events;
+﻿using KGN.Stardew.AFKHosting.DialogAutomation;
+using KGN.Stardew.AFKHosting.Events;
 using KGN.Stardew.Framework;
+using KGN.Stardew.Framework.API;
+using KGN.Stardew.Framework.Utilities;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using StardewModdingAPI;
@@ -7,6 +10,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Menus;
 using System;
+using System.IO;
 using static KGN.Stardew.Framework.StardewAPI;
 
 namespace KGN.Stardew.AFKHosting
@@ -14,11 +18,19 @@ namespace KGN.Stardew.AFKHosting
     public class Main : KGNMod<AFKHostingState>
     {
         public Config Config { get; private set; }
-
+        public DialogAutomationConfig DialogAutomationConfig { get; private set; }
         public override void Entry(IModHelper helper)
         {
             Config = Helper.ReadConfig<Config>();
-            State = new AFKHostingState(Config.StartInAFKHostingMode);
+            DialogAutomationConfig = Helper.ReadJsonFile<DialogAutomationConfig>(Path.Combine(Helper.DirectoryPath,$"{nameof(DialogAutomationConfig)}.json"));
+
+            if(DialogAutomationConfig == null)
+            {
+                DialogAutomationConfig = new DialogAutomationConfig();
+                Helper.WriteJsonFile(Path.Combine(Helper.DirectoryPath, $"{nameof(DialogAutomationConfig)}.json"), DialogAutomationConfig);
+            }
+
+            State = new AFKHostingState(Config.StartInAFKHostingMode, false);
             LoadEvents();
 
             //todo: add framework for loading custom commands
@@ -42,7 +54,7 @@ namespace KGN.Stardew.AFKHosting
         }
 
         //methods that start and stop the mod when loading/closing games
-        #region Initialization
+        #region ModStartupAndTermination
 
         private void SaveEvents_AfterCreate(object sender, EventArgs e)
         {
@@ -69,14 +81,13 @@ namespace KGN.Stardew.AFKHosting
                 Monitor.Log("AFK Hosting disabled in single player mode.", LogLevel.Info);
         }
 
-        #endregion
+        
 
         public void HookupStardewEvents()
         {
             InputEvents.ButtonReleased += InputEvents_ButtonReleased;
             GameEvents.QuarterSecondTick += GameEvents_QuarterSecondTick;
             GameEvents.UpdateTick += GameEvents_UpdateTick;
-            AreRemotePlayersOnlineChanged += (s, e) => Monitor.Log("test property changed event", LogLevel.Trace);
         }
 
         public void ReleaseStardewEvents()
@@ -84,8 +95,10 @@ namespace KGN.Stardew.AFKHosting
             InputEvents.ButtonReleased -= InputEvents_ButtonReleased;
             GameEvents.QuarterSecondTick -= GameEvents_QuarterSecondTick;
         }
-   
 
+        #endregion
+
+        #region Events
         //fast enough that it seems near instant but more performant since it doesn't run as often
         private void GameEvents_QuarterSecondTick(object sender, EventArgs e)
         {
@@ -95,9 +108,7 @@ namespace KGN.Stardew.AFKHosting
 
         private void GameEvents_UpdateTick(object sender, EventArgs e)
         {
-            UpdateAPI();
-            //if (Game1.afterFade == null)
-                //Game1.afterFade = new Game1.afterFadeFunction(AfterFade);
+            UpdateTick();
         }
 
         //handle key presses
@@ -106,39 +117,10 @@ namespace KGN.Stardew.AFKHosting
             if (Context.IsWorldReady && e.Button == Config.ToggleAFKKey)
                 BroadcastEvent(new ToggleAFKStatus());
         }
-
-        private void startdialog()
-        {
-            var tile = Game1.currentLocation?.currentEvent?.getActorByName("Lewis")?.getTileLocation();
-            if (tile != null)
-            {
-                Vector2 mousePosition = (tile.Value * new Vector2(Game1.tileSize)) - new Vector2(Game1.viewport.X, Game1.viewport.Y);
-                Game1.pressActionButton(new KeyboardState(), new MouseState(Convert.ToInt32(mousePosition.X), Convert.ToInt32(mousePosition.Y), 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released), new GamePadState());
-            }
-
-
-            Game1.afterFade -= startdialog;
-            //AfterFade -= startdialog;
-        }
-
-        private static void staticStartDialog()
-        {
-            var tile = Game1.currentLocation?.currentEvent?.getActorByName("Lewis")?.getTileLocation();
-            if (tile != null)
-            {
-                Vector2 mousePosition = (tile.Value * new Vector2(Game1.tileSize)) - new Vector2(Game1.viewport.X, Game1.viewport.Y);
-                Game1.pressActionButton(new KeyboardState(), new MouseState(Convert.ToInt32(mousePosition.X), Convert.ToInt32(mousePosition.Y), 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released), new GamePadState());
-            }
-
-            Game1.afterFade -= staticStartDialog;
-        }
+        #endregion
 
         //todo: factor out this logic from main and add wentToFestival to mod state
         //TODO: add trace log
-        private bool wentToFestival = false;
-        private bool testRunOnce = true;
-        public event Game1.afterFadeFunction AfterFade = new Game1.afterFadeFunction(() => { });
-        public Game1.afterFadeFunction startDialogDelegate = new Game1.afterFadeFunction(staticStartDialog);
         public void AFKHostingRoutine()
         {
             //TODO: need to cancel waiting for player dialog if other players have quit
@@ -154,15 +136,54 @@ namespace KGN.Stardew.AFKHosting
             if (!(IsThisPlayerFree && RemotePlayersAreOnline && Context.IsMultiplayer))
                 return;
 #endif
-            //TODO: test if this tries to teleport player more than once
-            if (IsFestivalDay && IsFestivalReady && !IsThisPlayerAtFestival && !wentToFestival)
+            //teleport player to festival when its ready if they have not been yet
+            if (IsFestivalDay && IsFestivalReady && !IsThisPlayerAtFestival && !State.WentToTodaysFestival)
             {
-                //make this a helper function
                 var festivalLocation = WhereIsFestival();
-                if(festivalLocation != Location.None)
+                if (festivalLocation != Location.None)
                 {
-                    //AfterFade += startdialog;
-                    Game1.afterFade += startdialog;
+                     
+
+                    void DebouncedTeleportToNPC(object sender, EventArgs args)
+                    {
+                        RateLimiting.Debounce(nameof(DebouncedTeleportToNPC), 1000, () =>
+                        {
+                            ViewportChanged -= DebouncedTeleportToNPC;
+                            var testDialog = new NPCDialogAutomater("Lewis", true, Monitor, Helper,
+                                new DialogAction[] {
+                                    new DialogAction {
+                                        DialogActionType = DialogActionType.Start
+                                    },
+                                    new DialogAction {
+                                        DialogActionType = DialogActionType.Next
+                                    },
+                                    new DialogAction {
+                                        DialogActionType = DialogActionType.Next
+                                    },
+                                    new DialogAction {
+                                        DialogActionType = DialogActionType.Start
+                                    },
+                                    new DialogAction {
+                                        DialogActionType = DialogActionType.Answer,
+                                        AnswerIndex = 0
+                                    }
+                                });
+
+                            ViewportChanged += DebouncedRunActions;
+                            testDialog.TeleportToNPC();
+                            
+                            void DebouncedRunActions(object s, EventArgs e)
+                            {
+                                RateLimiting.Debounce(nameof(DebouncedRunActions), 1000, () =>
+                                {
+                                    ViewportChanged -= DebouncedRunActions;
+                                    testDialog.RunActions();
+                                });
+                            }
+                        });
+                    }
+
+                    ViewportChanged += DebouncedTeleportToNPC;
                     TeleportThisPlayer(festivalLocation, 0, 0);
                     return;
                 }
@@ -170,15 +191,13 @@ namespace KGN.Stardew.AFKHosting
 
             //should not have to handle where player is waiting for other players to enter festival
             //as that should be taken care of by StardewAPI.IsThisPlayerFree
-
-            if(IsFestivalDay && IsThisPlayerAtFestival && !wentToFestival)
+            if(IsFestivalDay && IsThisPlayerAtFestival && !State.WentToTodaysFestival)
             {
-                var tile = Game1.currentLocation?.currentEvent?.getActorByName("Lewis")?.getTileLocation();
-                if (!tile.HasValue) return;
-                Game1.player.setTileLocation(new Vector2(tile.Value.X, tile.Value.Y+1));
-                Game1.player.faceDirection(Game1.up);
+                //var tile = Game1.currentLocation?.currentEvent?.getActorByName("Lewis")?.getTileLocation();
+                //if (!tile.HasValue) return;
+                //Game1.player.setTileLocation(new Vector2(tile.Value.X, tile.Value.Y+1));
 
-                wentToFestival = true;
+                State.With(s => s.WentToTodaysFestival, true);
                 //Game1.player.team.SetLocalReady("festivalEnd", true);
                 //Game1.activeClickableMenu = (IClickableMenu)new ReadyCheckDialog("festivalEnd", true, new ConfirmationDialog.behavior(Game1.currentLocation.currentEvent.forceEndFestival), (ConfirmationDialog.behavior)null);
             }
@@ -187,7 +206,7 @@ namespace KGN.Stardew.AFKHosting
             //(or just start here if there is no festival) then it will run again to move player to bed if they are not in it
             //and one more time to trigger wait for sleep
             //TODO: test how this is affected by time change when festival ends
-            if (!IsFestivalDay || (IsFestivalDay && !IsThisPlayerAtFestival && wentToFestival))
+            if (!IsFestivalDay || (IsFestivalDay && !IsThisPlayerAtFestival && State.WentToTodaysFestival))
             {
                 //TODO: this doesnt work when at a festival, tries to tele repeatedly but nothing happens
                 //test if this waits until the teleport is finished
@@ -203,8 +222,35 @@ namespace KGN.Stardew.AFKHosting
 
             //reset festival status on next day
             //TODO: will this work for night market?
-            if (!IsFestivalDay && wentToFestival)
-                wentToFestival = false;
+            if (!IsFestivalDay && State.WentToTodaysFestival)
+                State.With(s => s.WentToTodaysFestival, false);
+
+            //if (Game1.activeClickableMenu is DialogueBox dialogueBox)
+            //{
+            //    var isQuestion = Helper.Reflection.GetField<bool>(dialogueBox, "isQuestion").GetValue();
+            //    if(isQuestion)
+            //    {
+            //        //TODO: auto answer questions based on a json event/dialog/person configuration file
+            //        return;
+            //    }
+            //    CloseDialogOrMenu();
+            //}
+                
+        }
+
+        private void StartDialogDebounced(object sender, EventArgs args)
+        {
+            RateLimiting.Debounce(nameof(StartDialogDebounced), 1000, () => {
+                var tile = Game1.currentLocation?.currentEvent?.getActorByName("Lewis")?.getTileLocation();
+                if (tile != null)
+                {
+                    Vector2 mousePosition = tile.Value.ConvertTileToMouseCoords();
+                    var mouseState = new MouseState(Convert.ToInt32(mousePosition.X), Convert.ToInt32(mousePosition.Y), 0, ButtonState.Released, ButtonState.Released, ButtonState.Pressed, ButtonState.Released, ButtonState.Released);
+                    Game1.setMousePosition(new Point(Convert.ToInt32(mousePosition.X), Convert.ToInt32(mousePosition.Y)));
+                    Game1.pressActionButton(new KeyboardState(), mouseState, new GamePadState());
+                    ViewportChanged -= StartDialogDebounced;
+                }
+            });
         }
     }
 }
